@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Super Studio v2.0 | Production Multi-Agent Platform</title>
+    <meta name="description" content="Production-grade agentic AI platform with multi-agent collaboration, streaming responses, and workflow visualization.">
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #030712;
+            --bg-surface: rgba(15,23,42,0.65);
+            --border-subtle: rgba(255,255,255,0.06);
+            --accent: #06b6d4;
+            --accent2: #8b5cf6;
+            --accent3: #ec4899;
+            --glow-cyan: rgba(6,182,212,0.4);
+            --glow-violet: rgba(139,92,246,0.3);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: #e2e8f0; min-height: 100vh; overflow: hidden; }
+
+        /* ── Animated Aurora Background ────────────────────────── */
+        .aurora { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+        .aurora div { position: absolute; border-radius: 50%; filter: blur(120px); }
+        .blob-a { top: -20%; left: -15%; width: 60vw; height: 60vw; background: radial-gradient(circle, rgba(6,182,212,0.22), transparent 70%); animation: float1 20s infinite ease-in-out; }
+        .blob-b { bottom: -25%; right: -20%; width: 65vw; height: 65vw; background: radial-gradient(circle, rgba(139,92,246,0.18), transparent 70%); animation: float2 25s infinite ease-in-out; }
+        .blob-c { top: 30%; left: 35%; width: 40vw; height: 40vw; background: radial-gradient(circle, rgba(236,72,153,0.12), transparent 70%); animation: float3 30s infinite ease-in-out; }
+        .blob-d { top: 60%; left: 10%; width: 30vw; height: 30vw; background: radial-gradient(circle, rgba(34,211,238,0.1), transparent 70%); animation: float1 22s infinite ease-in-out reverse; }
+        @keyframes float1 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(5%,3%) scale(1.1)} 66%{transform:translate(-3%,5%) scale(0.95)} }
+        @keyframes float2 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(-4%,6%) scale(1.08)} 66%{transform:translate(6%,-4%) scale(0.92)} }
+        @keyframes float3 { 0%,100%{transform:translate(0,0) scale(1) rotate(0deg)} 50%{transform:translate(8%,-5%) scale(1.15) rotate(5deg)} }
+
+        /* ── Noise Overlay ─────────────────────────────────────── */
+        .noise { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+        /* ── Glass Morphism ─────────────────────────────────────── */
+        .glass { background: var(--bg-surface); backdrop-filter: blur(24px) saturate(1.3); border: 1px solid var(--border-subtle); }
+        .glass-strong { background: rgba(15,23,42,0.85); backdrop-filter: blur(40px) saturate(1.5); border: 1px solid rgba(255,255,255,0.08); }
+
+        /* ── Scrollbar ─────────────────────────────────────────── */
+        .scrollbar-slim::-webkit-scrollbar { width: 3px; }
+        .scrollbar-slim::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar-slim::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 10px; }
+        .scrollbar-slim::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); }
+
+        /* ── Markdown ──────────────────────────────────────────── */
+        .md-body { font-size: 0.925rem; line-height: 1.8; color: #cbd5e1; }
+        .md-body h1,.md-body h2,.md-body h3 { color: #f1f5f9; font-weight: 700; margin: 1.2em 0 0.5em; }
+        .md-body h2 { font-size: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.4em; }
+        .md-body h3 { font-size: 1.05rem; color: #22d3ee; }
+        .md-body p { margin-bottom: 0.8em; }
+        .md-body ul,.md-body ol { margin-left: 1.5em; margin-bottom: 1em; }
+        .md-body ul { list-style: disc; }
+        .md-body li { margin-bottom: 0.35em; }
+        .md-body strong { color: #fff; font-weight: 600; }
+        .md-body em { color: #a78bfa; font-style: italic; }
+        .md-body code:not([class*="language-"]) { background: rgba(6,182,212,0.08); color: #67e8f9; padding: 0.12em 0.4em; border-radius: 0.3em; font-size: 0.85em; font-family: 'JetBrains Mono', monospace; border: 1px solid rgba(6,182,212,0.15); }
+        .md-body pre { background: rgba(2,6,23,0.8) !important; border: 1px solid rgba(255,255,255,0.06); border-radius: 1rem; padding: 1.2rem; overflow-x: auto; margin-bottom: 1.2em; position: relative; }
+        .md-body blockquote { border-left: 3px solid var(--accent2); padding-left: 1em; color: #94a3b8; margin: 0 0 1em; background: rgba(139,92,246,0.04); padding: 0.8em 1em; border-radius: 0 0.5rem 0.5rem 0; }
+
+        /* ── Animated Elements ──────────────────────────────────── */
+        @keyframes fadeUp { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
+        @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+        @keyframes shimmer { 0% { background-position: -200% 0 } 100% { background-position: 200% 0 } }
+        @keyframes glow-pulse { 0%,100% { box-shadow: 0 0 20px rgba(6,182,212,0.15) } 50% { box-shadow: 0 0 40px rgba(6,182,212,0.3) } }
+        @keyframes spin-slow { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+        @keyframes typing { 0%,100% { opacity:1 } 50% { opacity:0 } }
+        @keyframes slideInLeft { from { opacity:0; transform:translateX(-20px) } to { opacity:1; transform:translateX(0) } }
+        @keyframes scaleIn { from { opacity:0; transform:scale(0.9) } to { opacity:1; transform:scale(1) } }
+        @keyframes borderGlow { 0%,100%{border-color:rgba(6,182,212,0.2)} 50%{border-color:rgba(6,182,212,0.5)} }
+        @keyframes imgReveal { from { clip-path: inset(0 100% 0 0) } to { clip-path: inset(0 0 0 0) } }
+
+        .anim-fadeUp { animation: fadeUp 0.5s ease-out both; }
+        .anim-fadeIn { animation: fadeIn 0.4s ease-out both; }
+        .anim-slideLeft { animation: slideInLeft 0.4s ease-out both; }
+        .anim-scaleIn { animation: scaleIn 0.35s ease-out both; }
+        .anim-glow { animation: glow-pulse 3s ease-in-out infinite; }
+        .anim-shimmer { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent); background-size: 200% 100%; animation: shimmer 2s infinite; }
+
+        /* ── Loading Dots ──────────────────────────────────────── */
+        .dots span { display:inline-block; width:7px; height:7px; border-radius:50%; margin:0 3px; }
+        .dots span:nth-child(1) { background:#06b6d4; animation: bounce 1.4s infinite ease-in-out both; animation-delay:-0.32s; }
+        .dots span:nth-child(2) { background:#8b5cf6; animation: bounce 1.4s infinite ease-in-out both; animation-delay:-0.16s; }
+        .dots span:nth-child(3) { background:#ec4899; animation: bounce 1.4s infinite ease-in-out both; }
+        @keyframes bounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1.2)} }
+
+        /* ── Tab ───────────────────────────────────────────────── */
+        .tab-active { color: #fff; position: relative; }
+        .tab-active::after { content:''; position:absolute; bottom:0; left:20%; right:20%; height:2px; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:2px; }
+
+        /* ── Workflow ──────────────────────────────────────────── */
+        .wf-done { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.4); color: #34d399; }
+        .wf-error { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.4); color: #f87171; }
+        .wf-arrow { color: rgba(255,255,255,0.15); }
+
+        /* ── Sidebar Agent Button ──────────────────────────────── */
+        .agent-btn { position: relative; overflow: hidden; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+        .agent-btn::before { content:''; position:absolute; inset:0; background: linear-gradient(135deg, transparent, rgba(255,255,255,0.02)); opacity:0; transition: opacity 0.3s; }
+        .agent-btn:hover::before { opacity:1; }
+        .agent-btn:hover { transform: translateX(4px); }
+        .agent-btn-active { background: linear-gradient(135deg, rgba(6,182,212,0.1), rgba(139,92,246,0.05)); border: 1px solid rgba(6,182,212,0.25); }
+        .agent-btn-active::after { content:''; position:absolute; left:0; top:15%; bottom:15%; width:3px; background: linear-gradient(180deg,var(--accent),var(--accent2)); border-radius:0 3px 3px 0; }
+
+        /* ── Chat Bubble ───────────────────────────────────────── */
+        .bubble-user { background: linear-gradient(135deg, rgba(6,182,212,0.12), rgba(139,92,246,0.08)); border: 1px solid rgba(6,182,212,0.15); }
+        .bubble-ai { background: rgba(15,23,42,0.5); border: 1px solid rgba(255,255,255,0.05); }
+        .bubble-ai:hover { border-color: rgba(255,255,255,0.1); }
+
+        /* ── Image Container ───────────────────────────────────── */
+        .gen-image { border-radius: 1rem; overflow: hidden; position: relative; animation: imgReveal 0.8s ease-out both; }
+        .gen-image img { width: 100%; display: block; transition: transform 0.5s ease; }
+        .gen-image:hover img { transform: scale(1.03); }
+        .gen-image::after { content:''; position:absolute; inset:0; background: linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.4)); pointer-events:none; }
+
+        /* ── Send Button ───────────────────────────────────────── */
+        .send-btn { position: relative; overflow: hidden; }
+        .send-btn::before { content:''; position:absolute; inset:-2px; background:linear-gradient(135deg,var(--accent),var(--accent2),var(--accent3)); border-radius:inherit; z-index:-1; opacity:0; transition:opacity 0.3s; }
+        .send-btn:hover::before { opacity: 1; }
+
+        /* ── Stat Card ─────────────────────────────────────────── */
+        .stat-card { position: relative; overflow: hidden; }
+        .stat-card::before { content:''; position:absolute; top:-50%; right:-50%; width:100%; height:100%; background:radial-gradient(circle, rgba(6,182,212,0.06), transparent 70%); }
+    </style>
+</head>
+<body>
+    <div class="aurora"><div class="blob-a"></div><div class="blob-b"></div><div class="blob-c"></div><div class="blob-d"></div></div>
+    <div class="noise"></div>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        const agents = [
+            { id: "creative", name: "Creative Architect", icon: "✨", desc: "Art, Design & Writing", gradient: "from-violet-500/20 to-fuchsia-500/10" },
+            { id: "codebase", name: "Code Archaeologist", icon: "💻", desc: "Code & Architecture", gradient: "from-cyan-500/20 to-blue-500/10" },
+            { id: "marketing", name: "Market Strategist", icon: "📊", desc: "Campaigns & Copy", gradient: "from-amber-500/20 to-orange-500/10" },
+            { id: "hallucination-auditor", name: "Truth Auditor", icon: "⚖️", desc: "Fact-checking", gradient: "from-pink-500/20 to-rose-500/10" },
+            { id: "synthetic-data", name: "Data Alchemist", icon: "🧬", desc: "Dataset Generation", gradient: "from-emerald-500/20 to-teal-500/10" },
+            { id: "image-gen", name: "Vision Genesis", icon: "🎨", desc: "Image Generation", gradient: "from-purple-500/20 to-indigo-500/10" },
+            { id: "research", name: "Research Agent", icon: "🔍", desc: "Search & Summarize", gradient: "from-yellow-500/20 to-amber-500/10" },
+        ];
+
+        const apiBase = () => {
+            // When served dynamically by FastAPI in production (same port)
+            if (window.location.port !== "3000") {
+                return `${window.location.origin}/api/v1`;
+            }
+            // Fallback for local dev (start_multi_agent.py)
+            const h = window.location.hostname === "localhost" ? "127.0.0.1" : window.location.hostname;
+            return `http://${h}:8000/api/v1`;
+        };
+
+        // ── Markdown Renderer ───────────────────────────────────────
+        function Md({ text }) {
+            const ref = useRef(null);
+            useEffect(() => {
+                if (ref.current && text) {
+                    ref.current.innerHTML = marked.parse(text);
+                    Prism.highlightAllUnder(ref.current);
+                }
+            }, [text]);
+            return <div ref={ref} className="md-body" />;
+        }
+
+        // ── Workflow Visualizer ─────────────────────────────────────
+        function WorkflowViz({ workflow }) {
+            if (!workflow || workflow.length === 0) return null;
+            return (
+                <div className="flex items-center gap-1.5 flex-wrap mb-4 p-3 rounded-xl bg-black/30 border border-white/[0.04] anim-fadeIn">
+                    <span className="text-[9px] uppercase tracking-[0.2em] text-slate-500 mr-1.5 font-black">Pipeline</span>
+                    {workflow.map((step, i) => (
+                        <React.Fragment key={i}>
+                            <div className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold tracking-wide transition-all ${
+                                step.status === "done" ? "wf-done" : step.status === "error" ? "wf-error" : "border-slate-700/50 text-slate-500"
+                            }`} style={{animationDelay: `${i*0.1}s`}}>
+                                {step.agent}
+                                {step.verdict && <span className="ml-1.5 opacity-60">• {step.verdict}</span>}
+                            </div>
+                            {i < workflow.length - 1 && <span className="wf-arrow text-[10px] font-mono">→</span>}
+                        </React.Fragment>
+                    ))}
+                </div>
+            );
+        }
+
+        // ── Typing Indicator ────────────────────────────────────────
+        function ThinkingIndicator({ agentName }) {
+            return (
+                <div className="flex items-center gap-3 py-2 anim-fadeIn">
+                    <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500/20 to-violet-500/20 border border-white/10 flex items-center justify-center">
+                        <div className="w-4 h-4 border-2 border-cyan-400/50 border-t-transparent rounded-full" style={{animation: 'spin-slow 1s linear infinite'}}></div>
+                    </div>
+                    <div>
+                        <div className="text-xs font-semibold text-slate-300">{agentName || "Agents"} thinking...</div>
+                        <div className="dots mt-1"><span></span><span></span><span></span></div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ── Main Application ────────────────────────────────────────
+        function App() {
+            const [activeTab, setActiveTab] = useState("chat");
+            const [selectedAgent, setSelectedAgent] = useState(null);
+            const [usePlanner, setUsePlanner] = useState(true);
+            const [optimizePrompt, setOptimizePrompt] = useState(false);
+            const [prompt, setPrompt] = useState("");
+            const [messages, setMessages] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [sessionId, setSessionId] = useState(null);
+            const [assets, setAssets] = useState([]);
+            const [health, setHealth] = useState(null);
+            const [sidebarHover, setSidebarHover] = useState(null);
+            const chatEndRef = useRef(null);
+            const textareaRef = useRef(null);
+
+            useEffect(() => {
+                marked.setOptions({ breaks: true, gfm: true });
+                fetch(`${apiBase()}/session/create`, { method: "POST" })
+                    .then(r => r.json()).then(d => setSessionId(d.session_id)).catch(() => {});
+                fetch(`${apiBase()}/health`)
+                    .then(r => r.json()).then(d => setHealth(d)).catch(() => {});
+            }, []);
+
+            useEffect(() => {
+                chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, [messages]);
+
+            // ── Streaming Send ──────────────────────────────────────
+            const handleStream = useCallback(async () => {
+                if (!prompt.trim() || loading) return;
+                const userMsg = prompt.trim();
+                setPrompt("");
+                setMessages(prev => [...prev, { role: "user", text: userMsg }]);
+                setLoading(true);
+                setMessages(prev => [...prev, { role: "assistant", text: "", streaming: true }]);
+
+                try {
+                    const res = await fetch(`${apiBase()}/stream-workflow`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ prompt: userMsg, session_id: sessionId, service: selectedAgent?.id || null })
+                    });
+                    const reader = res.body.getReader();
+                    const decoder = new TextDecoder();
+                    let accumulated = "";
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        for (const line of decoder.decode(value).split("\n")) {
+                            if (line.startsWith("data: ")) {
+                                try {
+                                    const data = JSON.parse(line.slice(6));
+                                    if (data.text) {
+                                        accumulated += data.text;
+                                        setMessages(prev => {
+                                            const u = [...prev]; u[u.length-1] = { ...u[u.length-1], text: accumulated }; return u;
+                                        });
+                                    }
+                                } catch {}
+                            }
+                        }
+                    }
+                    setMessages(prev => { const u = [...prev]; u[u.length-1] = { ...u[u.length-1], streaming: false }; return u; });
+                } catch {
+                    setMessages(prev => { const u = [...prev]; u[u.length-1] = { role:"assistant", text:"Connection error.", streaming:false }; return u; });
+                }
+                setLoading(false);
+            }, [prompt, loading, sessionId, selectedAgent]);
+
+            // ── Orchestrated Send ───────────────────────────────────
+            const handleOrchestrated = useCallback(async () => {
+                if (!prompt.trim() || loading) return;
+                const userMsg = prompt.trim();
+                setPrompt("");
+                setMessages(prev => [...prev, { role: "user", text: userMsg }]);
+                setLoading(true);
+                const thinkingAgent = selectedAgent?.name || "Planner";
+                setMessages(prev => [...prev, { role: "assistant", text: "", workflow: [], thinking: true, thinkingAgent }]);
+
+                try {
+                    const res = await fetch(`${apiBase()}/execute-workflow`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ prompt: userMsg, session_id: sessionId, service: selectedAgent?.id || null, use_planner: usePlanner && !selectedAgent, optimize_prompt: optimizePrompt })
+                    });
+                    const data = await res.json();
+                    
+                    // Check if *any* agent in the workflow generated an image
+                    let generatedImage = null;
+                    if (data.llm_response?.startsWith("data:image")) {
+                        generatedImage = data.llm_response;
+                    } else if (data.workflow && Array.isArray(data.workflow)) {
+                        const imageStep = data.workflow.find(step => 
+                            step.agent === "image-gen" && 
+                            step.status === "done" && 
+                            step.output_preview?.startsWith("data:image")
+                        );
+                        if (imageStep) {
+                            generatedImage = imageStep.output_preview;
+                        }
+                    }
+
+                    if (generatedImage) {
+                        setAssets(prev => [...prev, { src: generatedImage, prompt: userMsg, time: new Date().toLocaleTimeString() }]);
+                    }
+
+                    setMessages(prev => {
+                        const u = [...prev];
+                        u[u.length-1] = { role:"assistant", text:data.llm_response||"No response.", workflow:data.workflow||[], evaluation:data.evaluation||null, agents:data.agents_used||[], elapsed:data.elapsed_seconds, thinking:false };
+                        return u;
+                    });
+                    setTimeout(() => Prism.highlightAll(), 100);
+                } catch {
+                    setMessages(prev => { const u=[...prev]; u[u.length-1]={role:"assistant",text:"Backend error.",thinking:false}; return u; });
+                }
+                setLoading(false);
+            }, [prompt, loading, sessionId, selectedAgent, usePlanner, optimizePrompt]);
+
+            const handleSend = () => {
+                if (selectedAgent?.id === "image-gen") { handleOrchestrated(); }
+                else if (selectedAgent || !usePlanner) { handleStream(); }
+                else { handleOrchestrated(); }
+            };
+
+            const currentAgentLabel = selectedAgent ? selectedAgent.name : usePlanner ? "Auto-Planner" : "Select agent";
+
+            return (
+                <div className="relative z-10 flex h-screen">
+                    {/* ── Sidebar ──────────────────────────────── */}
+                    <aside className="w-[280px] glass-strong border-r border-white/[0.04] flex flex-col shrink-0 anim-slideLeft">
+                        {/* Logo */}
+                        <div className="p-6 pb-5 border-b border-white/[0.04]">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center text-white text-lg font-black shadow-lg shadow-cyan-500/20">
+                                    ⚡
+                                </div>
+                                <div>
+                                    <h1 className="text-[15px] font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-violet-400 to-fuchsia-400">
+                                        SUPER STUDIO
+                                    </h1>
+                                    <p className="text-[9px] text-slate-500 uppercase tracking-[0.2em] font-bold mt-0.5">v2.0 Production</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Mode Toggles */}
+                        <div className="p-4 border-b border-white/[0.04] space-y-2.5">
+                            <label className="flex items-center gap-3 cursor-pointer group" id="planner-toggle">
+                                <div className={`relative w-9 h-5 rounded-full transition-all ${usePlanner ? 'bg-cyan-500/30' : 'bg-slate-700'}`}
+                                    onClick={() => { setUsePlanner(!usePlanner); if(!usePlanner) setSelectedAgent(null); }}>
+                                    <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all ${usePlanner ? 'left-[18px] bg-cyan-400 shadow-lg shadow-cyan-400/40' : 'left-0.5 bg-slate-500'}`}></div>
+                                </div>
+                                <span className="text-xs text-slate-400 group-hover:text-white transition font-medium">Auto-Planner</span>
+                            </label>
+                            <label className="flex items-center gap-3 cursor-pointer group" id="optimizer-toggle">
+                                <div className={`relative w-9 h-5 rounded-full transition-all ${optimizePrompt ? 'bg-violet-500/30' : 'bg-slate-700'}`}
+                                    onClick={() => setOptimizePrompt(!optimizePrompt)}>
+                                    <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all ${optimizePrompt ? 'left-[18px] bg-violet-400 shadow-lg shadow-violet-400/40' : 'left-0.5 bg-slate-500'}`}></div>
+                                </div>
+                                <span className="text-xs text-slate-400 group-hover:text-white transition font-medium">Prompt Optimizer</span>
+                            </label>
+                        </div>
+
+                        {/* Agent List */}
+                        <div className="flex-1 overflow-y-auto scrollbar-slim p-3 space-y-0.5">
+                            <h3 className="text-[9px] text-slate-600 uppercase tracking-[0.2em] font-black mb-3 px-2">Agents</h3>
+
+                            {/* Auto Mode */}
+                            <button onClick={() => { setSelectedAgent(null); setUsePlanner(true); }}
+                                className={`agent-btn w-full text-left p-3 rounded-xl text-xs flex items-center gap-3 ${!selectedAgent ? "agent-btn-active text-white" : "text-slate-500 hover:text-slate-300"}`}
+                                id="auto-mode-btn">
+                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-500/15 to-violet-500/10 border border-white/[0.06] flex items-center justify-center text-base">🤖</div>
+                                <div><div className="font-bold text-[13px]">Auto Mode</div><div className="text-[9px] opacity-50 mt-0.5">LangGraph Pipeline</div></div>
+                            </button>
+
+                            <div className="h-px bg-white/[0.03] my-2"></div>
+
+                            {agents.map((a, i) => (
+                                <button key={a.id} onClick={() => { setSelectedAgent(a); setUsePlanner(false); }}
+                                    className={`agent-btn w-full text-left p-3 rounded-xl text-xs flex items-center gap-3 ${
+                                        selectedAgent?.id === a.id ? "agent-btn-active text-white" : "text-slate-500 hover:text-slate-300"
+                                    }`}
+                                    style={{animationDelay: `${i*60}ms`}}
+                                    id={`agent-btn-${a.id}`}
+                                    onMouseEnter={() => setSidebarHover(a.id)}
+                                    onMouseLeave={() => setSidebarHover(null)}>
+                                    <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${a.gradient} border border-white/[0.06] flex items-center justify-center text-base transition-transform ${sidebarHover === a.id ? 'scale-110' : ''}`}>
+                                        {a.icon}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div className="font-bold text-[13px] truncate">{a.name}</div>
+                                        <div className="text-[9px] opacity-40 mt-0.5">{a.desc}</div>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Status */}
+                        <div className="p-3 border-t border-white/[0.04]">
+                            <div className="flex items-center gap-3 p-3 rounded-xl bg-black/30 border border-white/[0.04]">
+                                <div className="relative flex h-2.5 w-2.5 shrink-0">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="text-[10px] text-white font-bold">All Systems Online</div>
+                                    <div className="text-[8px] text-emerald-400/60 font-mono truncate">
+                                        Session: {sessionId || "..."}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+
+                    {/* ── Main Content ────────────────────────────── */}
+                    <main className="flex-1 flex flex-col min-w-0">
+                        {/* Tab Bar */}
+                        <div className="glass-strong border-b border-white/[0.04] flex items-center px-4 shrink-0 h-12">
+                            {[{id:"chat",icon:"💬",label:"Chat"},{id:"assets",icon:"🖼️",label:"Assets"},{id:"workspace",icon:"📊",label:"Workspace"}].map(tab => (
+                                <button key={tab.id} onClick={() => setActiveTab(tab.id)} id={`tab-${tab.id}`}
+                                    className={`px-5 h-full text-[11px] font-bold uppercase tracking-[0.15em] transition-all flex items-center gap-2 ${
+                                        activeTab === tab.id ? "tab-active" : "text-slate-500 hover:text-slate-300"
+                                    }`}>
+                                    <span className="text-sm">{tab.icon}</span> {tab.label}
+                                </button>
+                            ))}
+                            <div className="ml-auto flex items-center gap-3">
+                                <div className="px-3 py-1 rounded-lg bg-gradient-to-r from-cyan-500/10 to-violet-500/10 border border-white/[0.06] text-[10px] font-bold text-slate-300">
+                                    {currentAgentLabel}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ── CHAT TAB ────────────────────────────── */}
+                        {activeTab === "chat" && (
+                            <div className="flex-1 flex flex-col min-h-0">
+                                <div className="flex-1 overflow-y-auto scrollbar-slim p-6 space-y-4" id="chat-messages">
+                                    {messages.length === 0 && (
+                                        <div className="h-full flex flex-col items-center justify-center anim-fadeIn">
+                                            <div className="relative mb-6">
+                                                <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-cyan-500/10 to-violet-500/10 border border-dashed border-white/10 flex items-center justify-center text-5xl anim-glow">
+                                                    ⚡
+                                                </div>
+                                                <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-gradient-to-br from-cyan-400 to-violet-500 flex items-center justify-center text-[10px] text-white font-black shadow-lg shadow-cyan-500/30">AI</div>
+                                            </div>
+                                            <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-400 mb-2">Welcome to Super Studio</h2>
+                                            <p className="text-sm text-slate-500 text-center max-w-md leading-relaxed">
+                                                {usePlanner
+                                                    ? "Auto-Planner analyzes your request and routes it through the optimal agent pipeline."
+                                                    : selectedAgent
+                                                        ? `Connected to ${selectedAgent.name}. Responses stream in real-time.`
+                                                        : "Select an agent or enable Auto-Planner."}
+                                            </p>
+                                            <div className="flex gap-2 mt-6">
+                                                {["Write a poem ✨","Generate code 💻","Create an image 🎨"].map((s,i) => (
+                                                    <button key={i} onClick={() => setPrompt(s.replace(/\s[^\s]+$/, ''))}
+                                                        className="px-4 py-2 rounded-xl glass text-[11px] text-slate-400 hover:text-white hover:border-white/10 transition-all hover:scale-105">
+                                                        {s}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {messages.map((msg, i) => (
+                                        <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} anim-fadeUp`} style={{animationDelay: `${(i%5)*0.05}s`}}>
+                                            <div className={`max-w-[78%] rounded-2xl p-5 ${msg.role === "user" ? "bubble-user" : "bubble-ai"}`}>
+                                                {msg.workflow && msg.workflow.length > 0 && <WorkflowViz workflow={msg.workflow} />}
+
+                                                {msg.thinking && <ThinkingIndicator agentName={msg.thinkingAgent} />}
+
+                                                {msg.text && !msg.thinking && (
+                                                    msg.text.startsWith("data:image") ? (
+                                                        <div className="gen-image shadow-2xl shadow-cyan-500/10">
+                                                            <img src={msg.text} alt="Generated" />
+                                                            <div className="absolute bottom-3 left-3 right-3 z-10 flex items-center justify-between">
+                                                                <span className="text-[10px] text-white/70 font-medium bg-black/40 px-2 py-1 rounded-lg backdrop-blur-sm">🎨 AI Generated</span>
+                                                                <a href={msg.text} download="super_studio_gen.png" className="text-[10px] text-cyan-300 bg-black/40 px-2 py-1 rounded-lg backdrop-blur-sm hover:bg-black/60 transition font-bold">⬇ Save</a>
+                                                            </div>
+                                                        </div>
+                                                    ) : msg.role === "user" ? (
+                                                        <p className="text-sm leading-relaxed text-cyan-50">{msg.text}</p>
+                                                    ) : (
+                                                        <Md text={msg.text} />
+                                                    )
+                                                )}
+
+                                                {msg.streaming && <span className="inline-block w-[3px] h-5 bg-cyan-400 ml-0.5 rounded-full" style={{animation:'typing 0.8s infinite'}} />}
+
+                                                {msg.evaluation && (
+                                                    <div className={`mt-3 inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.15em] px-3 py-1.5 rounded-lg border ${
+                                                        msg.evaluation.verdict === "PASS" ? "bg-emerald-500/8 border-emerald-500/20 text-emerald-400"
+                                                        : msg.evaluation.verdict === "WARN" ? "bg-amber-500/8 border-amber-500/20 text-amber-400"
+                                                        : "bg-red-500/8 border-red-500/20 text-red-400"
+                                                    }`}>
+                                                        {msg.evaluation.verdict === "PASS" ? "✓" : msg.evaluation.verdict === "WARN" ? "⚠" : "✕"} Eval: {msg.evaluation.verdict} — {msg.evaluation.confidence}%
+                                                    </div>
+                                                )}
+
+                                                {msg.elapsed != null && (
+                                                    <div className="mt-3 pt-3 border-t border-white/[0.04] flex flex-wrap items-center gap-1.5 text-[9px] text-slate-600">
+                                                        {msg.agents?.map(a => (
+                                                            <span key={a} className="px-2 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.04] font-mono">{a}</span>
+                                                        ))}
+                                                        <span className="ml-auto font-mono text-slate-500">{msg.elapsed}s</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div ref={chatEndRef} />
+                                </div>
+
+                                {/* Input */}
+                                <div className="p-4 glass-strong border-t border-white/[0.04] shrink-0">
+                                    <div className="flex gap-3 items-end max-w-4xl mx-auto">
+                                        <div className="flex-1 relative">
+                                            <textarea ref={textareaRef} value={prompt}
+                                                onChange={e => { setPrompt(e.target.value); e.target.style.height='auto'; e.target.style.height=Math.min(e.target.scrollHeight,120)+'px'; }}
+                                                onKeyDown={e => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleSend()} }}
+                                                placeholder={selectedAgent ? `Ask ${selectedAgent.name}...` : "Describe your task..."}
+                                                className="w-full bg-black/30 border border-white/[0.06] rounded-2xl p-4 pr-12 text-sm text-slate-200 resize-none focus:outline-none focus:border-cyan-500/30 transition-all h-[52px] max-h-[120px] scrollbar-slim placeholder:text-slate-600"
+                                                rows="1" id="chat-input" />
+                                        </div>
+                                        <button onClick={handleSend} disabled={loading||!prompt.trim()} id="send-btn"
+                                            className="send-btn h-[52px] w-[52px] rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center transition-all disabled:opacity-20 disabled:from-slate-800 disabled:to-slate-800 shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:scale-105 active:scale-95 shrink-0">
+                                            {loading ? <div className="dots"><span></span><span></span><span></span></div>
+                                            : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>}
+                                        </button>
+                                    </div>
+                                    <div className="text-center mt-2 text-[9px] text-slate-600 font-medium">
+                                        {selectedAgent?.id === "image-gen" ? "🎨 Image mode — results may take 30-60s" : selectedAgent ? `⚡ Streaming → ${selectedAgent.name}` : usePlanner ? "🧠 Planner → Agent Pipeline → Evaluator" : "Select an agent"}
+                                        {optimizePrompt && " • ✨ Optimizer ON"}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ── ASSETS TAB ──────────────────────────── */}
+                        {activeTab === "assets" && (
+                            <div className="flex-1 overflow-y-auto scrollbar-slim p-6 anim-fadeIn">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div>
+                                        <h2 className="text-xl font-bold">Generated Assets</h2>
+                                        <p className="text-xs text-slate-500 mt-1">{assets.length} image{assets.length !== 1 ? 's' : ''} generated</p>
+                                    </div>
+                                </div>
+                                {assets.length === 0 ? (
+                                    <div className="text-center py-24 anim-fadeIn">
+                                        <div className="text-6xl mb-4 opacity-20">🖼️</div>
+                                        <p className="text-sm text-slate-600">No assets yet. Select <strong>Vision Genesis</strong> to create images.</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+                                        {assets.map((asset, i) => (
+                                            <div key={i} className="glass rounded-2xl overflow-hidden group anim-scaleIn" style={{animationDelay:`${i*0.1}s`}}>
+                                                <div className="relative overflow-hidden">
+                                                    <img src={asset.src} alt={asset.prompt} className="w-full h-52 object-cover group-hover:scale-110 transition-transform duration-700" />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                                </div>
+                                                <div className="p-4">
+                                                    <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{asset.prompt}</p>
+                                                    <div className="flex justify-between items-center mt-3">
+                                                        <span className="text-[9px] text-slate-600 font-mono">{asset.time}</span>
+                                                        <a href={asset.src} download={`asset_${i}.png`} className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold transition">⬇ Download</a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* ── WORKSPACE TAB ──────────────────────── */}
+                        {activeTab === "workspace" && (
+                            <div className="flex-1 overflow-y-auto scrollbar-slim p-6 space-y-5 anim-fadeIn">
+                                <h2 className="text-xl font-bold">Workspace</h2>
+
+                                <div className="grid grid-cols-4 gap-3">
+                                    {[
+                                        { value: messages.filter(m=>m.role==="user").length, label: "Queries", color: "cyan", icon: "💬" },
+                                        { value: messages.filter(m=>m.role==="assistant"&&!m.thinking).length, label: "Responses", color: "violet", icon: "🤖" },
+                                        { value: assets.length, label: "Images", color: "pink", icon: "🖼️" },
+                                        { value: new Set(messages.filter(m=>m.agents).flatMap(m=>m.agents)).size||0, label: "Agents", color: "emerald", icon: "⚡" },
+                                    ].map((s,i) => (
+                                        <div key={i} className="stat-card glass rounded-2xl p-5 text-center anim-scaleIn" style={{animationDelay:`${i*0.08}s`}}>
+                                            <div className="text-2xl mb-2">{s.icon}</div>
+                                            <div className={`text-3xl font-black text-${s.color}-400`}>{s.value}</div>
+                                            <div className="text-[9px] text-slate-500 uppercase tracking-[0.15em] mt-1 font-bold">{s.label}</div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="glass rounded-2xl p-5">
+                                    <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-slate-400 mb-4">System Health</h3>
+                                    {health ? (
+                                        <div className="grid grid-cols-3 gap-3">
+                                            {Object.entries(health.components || {}).map(([k, v]) => (
+                                                <div key={k} className="p-3 rounded-xl bg-black/30 border border-white/[0.04] flex items-center gap-3">
+                                                    <div className={`w-2.5 h-2.5 rounded-full ${v==="online"?"bg-emerald-400 shadow-lg shadow-emerald-400/40":"bg-red-400 shadow-lg shadow-red-400/40"}`} />
+                                                    <span className="text-xs capitalize font-medium">{k.replace("_"," ")}</span>
+                                                    <span className={`ml-auto text-[10px] font-bold ${v==="online"?"text-emerald-400":"text-red-400"}`}>{v}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : <p className="text-slate-600 text-sm">Loading...</p>}
+                                </div>
+
+                                <div className="glass rounded-2xl p-5">
+                                    <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-slate-400 mb-4">Session Log</h3>
+                                    <div className="space-y-1.5 max-h-48 overflow-y-auto scrollbar-slim">
+                                        {messages.length === 0 && <p className="text-xs text-slate-600">No messages yet.</p>}
+                                        {messages.map((msg, i) => (
+                                            <div key={i} className="flex gap-3 p-2.5 rounded-xl bg-black/20 text-[11px] hover:bg-black/30 transition">
+                                                <span className={`font-bold shrink-0 ${msg.role==="user"?"text-cyan-400":"text-violet-400"}`}>
+                                                    {msg.role==="user"?"YOU":"AI"}
+                                                </span>
+                                                <span className="text-slate-500 truncate">{msg.text?.substring(0,100)||"..."}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+</body>
+</html>

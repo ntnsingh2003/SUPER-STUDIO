@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+pydantic<3.0.0
+langchain
+langchain-core
+langchain-community
+langchain-huggingface
+huggingface-hub
+sentence-transformers
+faiss-cpu
+python-dotenv
+httpx
+Pillow
+chromadb
+sse-starlette
+aiofiles

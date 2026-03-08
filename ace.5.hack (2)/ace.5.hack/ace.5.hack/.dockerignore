@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+backend_error.log
+backend_error_utf8.log
+err.txt
+err_utf8.txt
+result.txt
+*.log
